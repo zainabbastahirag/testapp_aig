@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Experion — Demo</title>
+<style>
+  :root { --b: #e2e8f0; --t: #0f172a; --m: #475569; --p: #3b82f6; --bg: #f8fafc; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.6 -apple-system,'Segoe UI',Roboto,sans-serif; color: var(--t); background: var(--bg); }
+  header.hero { padding: 40px 28px 28px; background: linear-gradient(135deg, #1e3a8a, #6d28d9); color: #fff; }
+  header.hero h1 { margin: 0 0 8px; font-size: 28px; }
+  header.hero p  { margin: 0; opacity: .85; max-width: 720px; }
+  main { max-width: 1100px; margin: -16px auto 0; padding: 0 24px 120px; }
+  section { background: #fff; border: 1px solid var(--b); border-radius: 12px; padding: 22px 24px; margin: 18px 0;
+            box-shadow: 0 2px 6px rgba(15,23,42,.04); }
+  section h2 { margin-top: 0; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+  section h2 .num { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+                    background: linear-gradient(135deg,#3b82f6,#8b5cf6); color: #fff; font-size: 13px; font-weight: 700; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .pill { padding: 6px 12px; border: 1px solid var(--b); border-radius: 20px; background: #fff; cursor: pointer;
+          font: 13px sans-serif; color: var(--t); transition: all .15s; }
+  .pill:hover { border-color: var(--p); color: var(--p); background: #eff6ff; }
+  .pill.action { border-color: #ef4444; color: #b91c1c; }
+  .pill.action:hover { background: #fef2f2; }
+  .pill.gen { border-color: #8b5cf6; color: #6d28d9; }
+  .pill.gen:hover { background: #f5f3ff; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 12px;
+        white-space: pre-wrap; word-break: break-word; max-height: 280px; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--b); }
+  th { background: #f1f5f9; font-size: 12px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid .box { padding: 14px; border: 1px solid var(--b); border-radius: 10px; background: #f8fafc; }
+  .grid .box h3 { margin: 0 0 8px; font-size: 13px; color: var(--m); text-transform: uppercase; letter-spacing: .5px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge.ok { background: #d1fae5; color: #065f46; }
+  .badge.miss { background: #fee2e2; color: #991b1b; }
+  .badge.hit { background: #dbeafe; color: #1e3a8a; }
+  .help { color: var(--m); font-size: 13px; margin: 6px 0 14px; }
+  .product { padding: 16px; border: 1px solid var(--b); border-radius: 10px; background: #fff; }
+  .product h3 { margin: 0 0 4px; }
+  .product p { margin: 0; color: var(--m); font-size: 13px; }
+  button.primary { padding: 8px 14px; background: var(--p); color: #fff; border: 0; border-radius: 8px;
+                   cursor: pointer; font-size: 13px; }
+  button.primary:hover { background: #2563eb; }
+  .status { font-size: 12px; color: var(--m); margin-top: 8px; }
+  .status .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #94a3b8;
+                 vertical-align: middle; margin-right: 6px; }
+  .status.connected .dot { background: #10b981; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>Experion — Drop-in Recommendation Agent</h1>
+  <p>This is a sample website. The Experion JS SDK is loaded at the bottom of the page (the floating sphere bottom-right).
+  Use the controls below to exercise every flow shown in the architecture diagram.</p>
+</header>
+
+<main>
+
+  <section>
+    <h2><span class="num">1</span>SDK boot &amp; identity</h2>
+    <p class="help">When the page loaded, the SDK called <code>POST /api/experion/identify</code> to mint a session.
+    If you're logged in, set <code>data-user-id</code> on the <code>&lt;script&gt;</code> tag; otherwise it falls back to an anonymous id.</p>
+    <div class="grid">
+      <div class="box">
+        <h3>Identity</h3>
+        <div id="ident-out">…</div>
+      </div>
+      <div class="box">
+        <h3>Tenant config</h3>
+        <pre id="cfg-out">…</pre>
+      </div>
+    </div>
+    <div class="status" id="hub-status"><span class="dot"></span><span>SignalR: connecting…</span></div>
+  </section>
+
+  <section>
+    <h2><span class="num">2</span>Try the Action Trigger path</h2>
+    <p class="help">These messages match an entry in the <strong>ActionMappings</strong> SQL table.
+    The intent router sends them down the action lane → Service Bus action-queue → ActionWorker → SignalR back to the SDK.
+    Watch for the toast notification.</p>
+    <div class="row">
+      <button class="pill action" onclick="Experion.ask('add this to my cart please')">add this to my cart please</button>
+      <button class="pill action" onclick="Experion.ask('go to settings page')">go to settings page</button>
+      <button class="pill action" onclick="Experion.ask('i have a coupon code')">i have a coupon code</button>
+      <button class="pill action" onclick="Experion.ask('contact support')">contact support</button>
+      <button class="pill action" onclick="Experion.ask('log me out')">log me out</button>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">3</span>Try the LLM Generation path</h2>
+    <p class="help">These don't match an action. They go to RAG: KB retrieval (tenant config) → LLM. The first call is a cache MISS and writes to the semantic cache; the second identical call is a cache HIT.</p>
+    <div class="row">
+      <button class="pill gen" onclick="Experion.ask('what is the refund policy')">what is the refund policy</button>
+      <button class="pill gen" onclick="Experion.ask('tell me about pricing')">tell me about pricing</button>
+      <button class="pill gen" onclick="Experion.ask('what categories do you have')">what categories do you have</button>
+      <button class="pill gen" onclick="Experion.ask('how do I reach support')">how do I reach support</button>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">4</span>Try the circle gesture</h2>
+    <p class="help">Hold <code>Alt</code> and drag your mouse to circle any region of this page. The SDK extracts the
+    DOM text inside the region and sends it as <code>capturedText</code> alongside the question
+    "Tell me about this circled content".</p>
+    <div class="grid">
+      <div class="product">
+        <h3>Acme AI Agent Pro</h3>
+        <p>Autonomous knowledge agent with built-in RAG, tool-use, and proactive recommendations.
+           $29/month on the Pro plan.</p>
+      </div>
+      <div class="product">
+        <h3>Acme Cloud Vault</h3>
+        <p>Encrypted document store with OCR, semantic search, and per-team access policies.
+           Available on Enterprise plans.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">5</span>Trigger a proactive recommendation</h2>
+    <p class="help">The Activity Mining Worker reads activity events. After about 5 events in 30 seconds it asks the LLM
+    to draft a nudge and pushes it via SignalR. Click the button below to fire 6 quick events.</p>
+    <button class="primary" onclick="fireBurst()">Fire 6 activity events now</button>
+    <div class="status" id="burst-status"></div>
+  </section>
+
+  <section>
+    <h2><span class="num">6</span>Inspect the data layer</h2>
+    <p class="help">These read straight from SQLite (in real arch: SQL Server + AI Search). Click to refresh.</p>
+    <div class="row">
+      <button class="pill" onclick="loadHistory()">Conversation history</button>
+      <button class="pill" onclick="loadCache()">Semantic cache</button>
+      <button class="pill" onclick="loadAudit()">Audit log</button>
+      <button class="pill" onclick="loadProfile()">User profile + recent events</button>
+      <button class="pill" onclick="loadActions()">Action mappings</button>
+    </div>
+    <pre id="inspect-out" style="margin-top:14px">Pick a panel above…</pre>
+  </section>
+
+</main>
+
+<!-- Experion SDK loaded last so the page is fully constructed before identify() runs. -->
+<script src="/experion.js" data-tenant="default" data-api="" data-auto-init="true"></script>
+
+<script>
+  const api = (p) => fetch('/api/experion' + p).then(r => r.json());
+
+  window.addEventListener('experion:ready', e => {
+    document.getElementById('ident-out').innerHTML =
+      `<div><strong>Session:</strong> ${e.detail.sessionId}</div>
+       <div><strong>User:</strong> ${e.detail.userId}</div>
+       <div><strong>Anonymous:</strong> ${e.detail.isAnonymous ? 'yes' : 'no'}</div>`;
+    api('/config/default').then(c => document.getElementById('cfg-out').textContent = JSON.stringify(c, null, 2));
+    setTimeout(() => {
+      const s = document.getElementById('hub-status');
+      s.classList.add('connected');
+      s.querySelector('span:last-child').textContent = 'SignalR: connected';
+    }, 1500);
+  });
+
+  window.addEventListener('experion:nudge', e => {
+    document.getElementById('burst-status').innerHTML =
+      `<span class="badge hit">NUDGE RECEIVED</span> reason: ${e.detail.reason}`;
+  });
+  window.addEventListener('experion:action', e => {
+    document.getElementById('burst-status').innerHTML =
+      `<span class="badge ok">ACTION ECHOED</span> ${e.detail.actionKey}`;
+  });
+
+  async function fireBurst() {
+    const s = document.getElementById('burst-status');
+    s.innerHTML = 'firing…';
+    for (let i = 0; i < 6; i++) {
+      Experion.track('demo_burst', { meta: { i } });
+      await new Promise(r => setTimeout(r, 80));
+    }
+    await Experion.flush();
+    s.innerHTML = '6 events sent. Watch for a toast in 1-3s…';
+  }
+
+  function show(o) { document.getElementById('inspect-out').textContent = JSON.stringify(o, null, 2); }
+  async function loadHistory() { show(await api('/inspect/history/' + encodeURIComponent(Experion.sessionId()))); }
+  async function loadCache()   { show(await api('/inspect/cache')); }
+  async function loadAudit()   { show(await api('/inspect/audit')); }
+  async function loadProfile() { show(await api('/inspect/profile/' + encodeURIComponent(Experion.userId()))); }
+  async function loadActions() { show(await api('/inspect/actions')); }
+</script>
+
+</body>
+</html>
