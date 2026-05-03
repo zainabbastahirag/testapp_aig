@@ -1,0 +1,279 @@
+<mxfile host="app.diagrams.net" modified="2026-05-03T08:41:00.000Z" agent="cursor" version="24.0.0" type="device">
+  <diagram name="Experion - High Level Flow" id="experion-flow-v1">
+    <mxGraphModel dx="2200" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="AG ONE Experion — High-Level End-to-End Flow" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=22;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1620" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="User on any website  →  Experion JS Agent  →  AG AI HUB (Cache → Route → Action / LLM)  →  Response back" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontColor=#475569;" vertex="1" parent="1">
+          <mxGeometry x="40" y="55" width="1620" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- Swimlane 1: USER  -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="lane-user" value="USER" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#3B82F6;fontSize=13;fontStyle=1;fontColor=#1E3A8A;align=center;verticalAlign=top;spacingTop=10;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="180" height="980" as="geometry" />
+        </mxCell>
+
+        <!-- Swimlane 2: EXPERION SDK -->
+        <mxCell id="lane-sdk" value="EXPERION JS AGENT  (frontend SDK)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#60A5FA;fontSize=13;fontStyle=1;fontColor=#1E40AF;align=center;verticalAlign=top;spacingTop=10;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="240" y="100" width="320" height="980" as="geometry" />
+        </mxCell>
+
+        <!-- Swimlane 3: AG AI HUB API + ORCHESTRATOR -->
+        <mxCell id="lane-api" value="AG AI HUB  —  ExperionController + IExperionService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=13;fontStyle=1;fontColor=#92400E;align=center;verticalAlign=top;spacingTop=10;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="580" y="100" width="640" height="980" as="geometry" />
+        </mxCell>
+
+        <!-- Swimlane 4: INFRA -->
+        <mxCell id="lane-infra" value="INFRASTRUCTURE  (Azure)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1F5F9;strokeColor=#475569;fontSize=13;fontStyle=1;fontColor=#0F172A;align=center;verticalAlign=top;spacingTop=10;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="100" width="420" height="980" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- Step nodes — USER lane                                   -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="u1" value="① Visits&#10;a website" style="ellipse;whiteSpace=wrap;html=1;fillColor=#3B82F6;strokeColor=#1E3A8A;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="65" y="160" width="130" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="u2" value="② Browses /&#10;circles area /&#10;asks question" style="ellipse;whiteSpace=wrap;html=1;fillColor=#3B82F6;strokeColor=#1E3A8A;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="65" y="380" width="130" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="u3" value="③ Receives&#10;answer or&#10;recommendation" style="ellipse;whiteSpace=wrap;html=1;fillColor=#3B82F6;strokeColor=#1E3A8A;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="65" y="900" width="130" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- SDK lane steps                                            -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="s1" value="&lt;b&gt;Boot &amp; Identify&lt;/b&gt;&#10;&#10;• Load tenant config&#10;• Resolve UserID (or anon-id + IP/geo cluster)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#3B82F6;fontSize=11;fontColor=#1E3A8A;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="260" y="160" width="285" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s2" value="&lt;b&gt;Track activity (passive, async)&lt;/b&gt;&#10;&#10;pageview · dwell · click · scroll · forms&#10;Batched POST /events  →  Service Bus" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontSize=11;fontColor=#065F46;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="260" y="270" width="285" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3" value="&lt;b&gt;Trigger event (sync)&lt;/b&gt;&#10;&#10;Circle gesture / idle nudge / chat message&#10;POST /api/experion/process" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#3B82F6;fontSize=11;fontColor=#1E3A8A;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="260" y="385" width="285" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s4" value="&lt;b&gt;Render in UI&lt;/b&gt;&#10;&#10;Sphere · Sidebar · Suggestions · Nudge bubble" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F3FF;strokeColor=#8B5CF6;fontSize=11;fontColor=#4C1D95;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="260" y="900" width="285" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- API / Orchestrator lane steps                             -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="a0" value="&lt;b&gt;ExperionController&lt;/b&gt;  receives request&#10;( /process · /events · /ask · /feedback · WS /push )" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D97706;fontSize=11;fontStyle=1;fontColor=#92400E;align=center;verticalAlign=middle;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="600" y="160" width="600" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 1 Context Builder -->
+        <mxCell id="a1" value="&lt;b&gt;1️ Context Builder&lt;/b&gt;&#10;&#10;• Load Conversation History (per UserID)&#10;• Load User Profile / cohort&#10;• Clean DOM fragment, build normalised query" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFBEB;strokeColor=#F59E0B;fontSize=11;fontColor=#78350F;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="600" y="230" width="600" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2 Semantic Cache -->
+        <mxCell id="a2" value="&lt;b&gt;2️ Semantic Cache  (check FIRST → save tokens)&lt;/b&gt;&#10;&#10;Embed query → vector lookup in AI Search cache index&#10;HIT (≥ threshold) → return cached answer       MISS → continue ↓" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontSize=11;fontColor=#065F46;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="600" y="325" width="600" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Step 3 Intent Router -->
+        <mxCell id="a3" value="&lt;b&gt;3️ NLP Intent Router&lt;/b&gt;     classifies →  ACTION   ·   GENERATION" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFBEB;strokeColor=#F59E0B;fontSize=11;fontStyle=1;fontColor=#78350F;align=center;verticalAlign=middle;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="600" y="420" width="600" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 4a Action Trigger -->
+        <mxCell id="a4a" value="&lt;b&gt;4a Action Trigger&lt;/b&gt;&#10;&#10;• Lookup ActionMappings (SQL)&#10;  intent → actionKey&#10;• Publish to Service Bus action-queue&#10;• Worker invokes API / job&#10;• Returns ack" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#EF4444;fontSize=11;fontColor=#7F1D1D;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="600" y="490" width="290" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Step 4b LLM Generation -->
+        <mxCell id="a4b" value="&lt;b&gt;4b LLM Generation (RAG)&lt;/b&gt;&#10;&#10;• Embed query&#10;• Retrieve KB chunks (AI Search)&#10;• Build prompt: history + KB + profile&#10;• Call Azure OpenAI GPT-4.1&#10;• Stream response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F3FF;strokeColor=#8B5CF6;fontSize=11;fontColor=#4C1D95;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="910" y="490" width="290" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Step 5 Persist & Learn -->
+        <mxCell id="a5" value="&lt;b&gt;5️ Persist &amp; Learn&lt;/b&gt;&#10;&#10;Conversation History (SQL)   ·   Semantic Cache write-back (AI Search)   ·   Audit log (SQL)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFBEB;strokeColor=#F59E0B;fontSize=11;fontColor=#78350F;align=center;verticalAlign=middle;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="600" y="670" width="600" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Async Mining + Reco -->
+        <mxCell id="a6" value="&lt;b&gt;Async lane — Activity Mining + Recommendation&lt;/b&gt;&#10;&#10;Service Bus events → Worker stitches sessions → Blob JSONL + UserProfile (SQL)&#10;Trigger engine evaluates rules → drafts nudge via LLM → SignalR push → SDK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontSize=11;fontColor=#065F46;align=center;verticalAlign=middle;arcSize=3;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="600" y="750" width="600" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Response back -->
+        <mxCell id="a7" value="&lt;b&gt;Response&lt;/b&gt;  →  message + suggestions + relatedDocs  →  back to SDK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D97706;fontSize=11;fontStyle=1;fontColor=#92400E;align=center;verticalAlign=middle;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="600" y="900" width="600" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- INFRA lane data stores                                    -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="i-sql" value="&lt;b&gt;SQL Server&lt;/b&gt;&#10;&#10;ConversationHistory&#10;ActionMappings&#10;UserProfile · Audit&#10;TenantConfig" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFFFFF;strokeColor=#D97706;fontSize=11;fontColor=#92400E;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="160" width="180" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="i-search" value="&lt;b&gt;Azure AI Search&lt;/b&gt;&#10;&#10;KB index (vector)&#10;Semantic-cache index" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFFFFF;strokeColor=#8B5CF6;fontSize=11;fontColor=#4C1D95;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1480" y="160" width="170" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="i-sb" value="&lt;b&gt;Service Bus&lt;/b&gt;&#10;&#10;events-queue&#10;action-queue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#10B981;fontSize=11;fontColor=#065F46;align=center;verticalAlign=middle;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="310" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="i-blob" value="&lt;b&gt;Blob Storage&lt;/b&gt;&#10;&#10;Raw activity JSONL&#10;Documents" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFFFFF;strokeColor=#0EA5E9;fontSize=11;fontColor=#075985;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1480" y="310" width="170" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="i-aoai" value="&lt;b&gt;Azure OpenAI&lt;/b&gt;&#10;&#10;GPT-4.1 chat&#10;Embeddings" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#A855F7;fontSize=11;fontColor=#6B21A8;align=center;verticalAlign=middle;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="490" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="i-docintel" value="&lt;b&gt;Doc Intelligence&lt;/b&gt;&#10;&#10;OCR / layout&#10;PDF · DOCX" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#64748B;fontSize=11;fontColor=#1E293B;align=center;verticalAlign=middle;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="1480" y="490" width="170" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="i-signalr" value="&lt;b&gt;Azure SignalR&lt;/b&gt;&#10;&#10;Server → SDK push&#10;(proactive nudges)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#A855F7;fontSize=11;fontColor=#6B21A8;align=center;verticalAlign=middle;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="750" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- ARROWS — main flow                                         -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- User → SDK boot -->
+        <mxCell id="e1" style="endArrow=classic;html=1;strokeColor=#1E3A8A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="u1" target="s1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- SDK boot → activity tracking -->
+        <mxCell id="e2" style="endArrow=classic;html=1;strokeColor=#10B981;strokeWidth=2;dashed=1;dashPattern=6 4;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User trigger → s3 -->
+        <mxCell id="e3" style="endArrow=classic;html=1;strokeColor=#1E3A8A;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="u2" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- s2 (events) → controller a0 (async dashed) -->
+        <mxCell id="e4" value="POST /events&#10;(async)" style="endArrow=classic;html=1;strokeColor=#10B981;strokeWidth=2;dashed=1;dashPattern=6 4;fontSize=10;fontColor=#065F46;exitX=1;exitY=0.5;entryX=0;entryY=0.3;" edge="1" parent="1" source="s2" target="a0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- s3 → a0 -->
+        <mxCell id="e5" value="POST /process&#10;(sync)" style="endArrow=classic;html=1;strokeColor=#1E40AF;strokeWidth=2;fontSize=10;fontStyle=1;fontColor=#1E40AF;exitX=1;exitY=0.5;entryX=0;entryY=0.7;" edge="1" parent="1" source="s3" target="a0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- a0 → a1 -->
+        <mxCell id="e6" style="endArrow=classic;html=1;strokeColor=#92400E;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="a0" target="a1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- a1 → a2 -->
+        <mxCell id="e7" style="endArrow=classic;html=1;strokeColor=#92400E;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="a1" target="a2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- a2 MISS → a3 -->
+        <mxCell id="e8" value="MISS" style="endArrow=classic;html=1;strokeColor=#92400E;strokeWidth=2;fontSize=10;fontStyle=1;fontColor=#92400E;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="a2" target="a3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- a2 HIT → a7 (skip pipeline) -->
+        <mxCell id="e9" value="HIT" style="endArrow=classic;html=1;strokeColor=#10B981;strokeWidth=2;fontSize=10;fontStyle=1;fontColor=#065F46;dashed=1;dashPattern=4 4;exitX=1;exitY=0.5;entryX=1;entryY=0;" edge="1" parent="1" source="a2" target="a7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1230" y="365" />
+              <mxPoint x="1230" y="900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- a3 → a4a -->
+        <mxCell id="e10" value="ACTION" style="endArrow=classic;html=1;strokeColor=#EF4444;strokeWidth=2;fontSize=10;fontStyle=1;fontColor=#7F1D1D;exitX=0.25;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="a3" target="a4a">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- a3 → a4b -->
+        <mxCell id="e11" value="GENERATION" style="endArrow=classic;html=1;strokeColor=#8B5CF6;strokeWidth=2;fontSize=10;fontStyle=1;fontColor=#4C1D95;exitX=0.75;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="a3" target="a4b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- a4a → a5 -->
+        <mxCell id="e12" style="endArrow=classic;html=1;strokeColor=#92400E;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.3;entryY=0;" edge="1" parent="1" source="a4a" target="a5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- a4b → a5 -->
+        <mxCell id="e13" style="endArrow=classic;html=1;strokeColor=#92400E;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.7;entryY=0;" edge="1" parent="1" source="a4b" target="a5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- a5 → a7 -->
+        <mxCell id="e14" style="endArrow=classic;html=1;strokeColor=#92400E;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="a5" target="a7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="900" y="850" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- a7 → s4 -->
+        <mxCell id="e15" value="response" style="endArrow=classic;html=1;strokeColor=#92400E;strokeWidth=2;fontSize=10;fontStyle=1;fontColor=#92400E;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="a7" target="s4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- s4 → u3 -->
+        <mxCell id="e16" style="endArrow=classic;html=1;strokeColor=#1E3A8A;strokeWidth=2;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="s4" target="u3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- a6 (async) → SignalR → SDK -->
+        <mxCell id="e17" style="endArrow=classic;html=1;strokeColor=#A855F7;strokeWidth=2;dashed=1;dashPattern=6 4;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="a6" target="i-signalr">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" value="proactive nudge" style="endArrow=classic;html=1;strokeColor=#A855F7;strokeWidth=2;dashed=1;dashPattern=6 4;fontSize=10;fontStyle=1;fontColor=#6B21A8;exitX=0;exitY=0;entryX=1;entryY=0.5;" edge="1" parent="1" source="i-signalr" target="s4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1380" y="700" />
+              <mxPoint x="565" y="700" />
+              <mxPoint x="565" y="940" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- Arrows from orchestrator steps to infra (dotted, faint)    -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="d1" value="read history" style="endArrow=classic;html=1;strokeColor=#94A3B8;strokeWidth=1;dashed=1;dashPattern=2 2;fontSize=9;fontColor=#64748B;exitX=1;exitY=0.5;entryX=0;entryY=0.7;" edge="1" parent="1" source="a1" target="i-sql">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d2" value="vector lookup" style="endArrow=classic;html=1;strokeColor=#94A3B8;strokeWidth=1;dashed=1;dashPattern=2 2;fontSize=9;fontColor=#64748B;exitX=1;exitY=0.5;entryX=0;entryY=0.7;" edge="1" parent="1" source="a2" target="i-search">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d3" value="ActionMappings" style="endArrow=classic;html=1;strokeColor=#94A3B8;strokeWidth=1;dashed=1;dashPattern=2 2;fontSize=9;fontColor=#64748B;exitX=1;exitY=0.3;entryX=0;entryY=1;" edge="1" parent="1" source="a4a" target="i-sb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d4" value="GPT + KB" style="endArrow=classic;html=1;strokeColor=#94A3B8;strokeWidth=1;dashed=1;dashPattern=2 2;fontSize=9;fontColor=#64748B;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="a4b" target="i-aoai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d5" value="write" style="endArrow=classic;html=1;strokeColor=#94A3B8;strokeWidth=1;dashed=1;dashPattern=2 2;fontSize=9;fontColor=#64748B;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="a5" target="i-sb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="&lt;b&gt;Legend&lt;/b&gt;        ━━ sync request/response       ╌╌ async / fire-and-forget       Blue = user/SDK     Green = activity &amp; cache hit     Red = action     Purple = LLM &amp; push     Amber = orchestration" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontSize=11;fontColor=#334155;align=center;verticalAlign=middle;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1100" width="1620" height="50" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
