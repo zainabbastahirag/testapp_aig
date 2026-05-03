@@ -1,0 +1,16 @@
+# Build outputs
+src/**/bin/
+src/**/obj/
+
+# .NET install script
+dotnet-install.sh
+
+# User secrets
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
+# OS
+.DS_Store
+Thumbs.db
+dotnet-install.sh
