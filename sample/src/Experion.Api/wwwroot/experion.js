@@ -180,7 +180,7 @@
     if (!state.sessionId || state.eventBuffer.length === 0) return;
     const batch = state.eventBuffer.splice(0, state.eventBuffer.length);
     try {
-      await api('/events', { sessionId: state.sessionId, events: batch });
+      await api('/track', { tenantId: cfg.tenant, sessionId: state.sessionId, events: batch });
     } catch (e) { /* silently retry on next flush */ }
   }
 
@@ -206,8 +206,8 @@
     setInterval(flushEvents, 5000);
     window.addEventListener('beforeunload', () => {
       if (!state.sessionId || state.eventBuffer.length === 0) return;
-      navigator.sendBeacon(cfg.api + '/api/experion/events',
-        new Blob([JSON.stringify({ sessionId: state.sessionId, events: state.eventBuffer })],
+      navigator.sendBeacon(cfg.api + '/api/experion/track',
+        new Blob([JSON.stringify({ tenantId: cfg.tenant, sessionId: state.sessionId, events: state.eventBuffer })],
           { type: 'application/json' }));
     });
   }

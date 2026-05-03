@@ -1,90 +1,124 @@
 # Experion — runnable sample
 
-A self-contained implementation of the Experion architecture from `docs/architecture/`:
+Self-contained reference implementation of the Experion architecture.
 
-- **.NET 8 Web API** (`src/Experion.Api`) — orchestrator + pipeline + async lane + SignalR
-- **Drop-in JS SDK** (`wwwroot/experion.js`) — identity, activity tracker, gesture, idle trigger, sphere + sidebar UI, SignalR client
-- **Sample HTML page** (`wwwroot/index.html`) — exercises every flow with one-click buttons + live data inspectors
+- **.NET 8 Web API** with **two main endpoints** + a **flat ExperionService** (one method per pipeline step)
+- **Drop-in JS SDK** (`wwwroot/experion.js`)
+- **Sample HTML page** with one-click buttons for every flow + live data inspectors (`wwwroot/index.html`)
+- **Real Blob Storage** for conversation history + activity events (Azure Blob Append Blobs in production, JSONL files locally for the demo)
+- **SQL Server** (SQLite locally) for ActionMappings, SemanticCache, UserProfile, AuditLog, TenantConfig
+- **Mock LLM/embedding** by default → swap to real Azure OpenAI with one config switch
 
-The sample uses **SQLite** for storage and a **mock LLM/embedding provider** by default so it runs without any Azure keys. To use real Azure OpenAI, see [Switching to Azure OpenAI](#switching-to-azure-openai).
-
-## Run it
+## Run
 
 ```bash
 cd sample/src/Experion.Api
 dotnet run
 ```
 
-Then open <http://localhost:5077/index.html>.
+Open <http://localhost:5077/index.html>.
 
-You'll see the floating sphere bottom-right (the SDK is loaded by the page itself). The page has six numbered sections, each one walks you through a part of the flow:
+## The two endpoints
 
-1. **SDK boot & identity** — shows the session, resolved user id, region cluster, tenant config; SignalR connection status.
-2. **Action Trigger path** — clickable buttons whose text matches `ActionMappings` rows. Watch the sidebar pipeline view + the toast that appears when the `ActionWorker` consumes the queue and echoes back via SignalR.
-3. **LLM Generation path** — clickable KB questions. First call is a **cache MISS** (you'll see all 5 pipeline steps). Repeat the same one — second call is a **cache HIT** (just steps 1, 2, 5 — no LLM).
-4. **Circle gesture** — hold **Alt** and drag to circle a region. The SDK extracts DOM text inside the circle and sends it as `capturedText`.
-5. **Proactive recommendation** — fires 6 events; the `ActivityMiningWorker` triggers the `RecommendationEngine`, which drafts a nudge and pushes it back via SignalR.
-6. **Inspect the data layer** — buttons that read `ConversationHistory`, `SemanticCache`, `AuditLog`, `UserProfile`, `ActionMappings`.
+This is the whole public surface for the agent loop:
 
-## What's implemented (matches the architecture diagram)
+```
+POST /api/experion/track     ← passive activity events
+POST /api/experion/process   ← chat / action / generation
+```
 
-| Layer | What you'll find |
+Everything else (`/identify`, `/config/{t}`, `/feedback`, `/inspect/*`) is supporting plumbing.
+
+## ExperionController — flat & boring on purpose
+
+```csharp
+// FUNCTION 1 — Track Activity (passive)
+TrackActivity(req)
+    -> _service.TrackActivityAsync(...)         // append events to Blob + update profile
+    -> _reco.EvaluateAsync(...)                 // maybe push a nudge
+
+// FUNCTION 2 — Process (chat / action / generation)
+Process(req)
+    var embedding = await _service.EmbedQueryAsync(query);
+    var cache     = await _service.CheckSemanticCacheAsync(tenant, embedding);
+    if (cache.Hit) {
+        answer     = use cached;
+        intentType = cache.IntentType;
+    } else {
+        var intent = await _service.ClassifyIntentAsync(tenant, query, embedding);
+        if (intent.IntentType == "ACTION")
+            answer = await _service.RunActionAsync(req, userId, intent.ActionKey);
+        else
+            answer = await _service.RunGenerationAsync(tenant, sid, userId, query);
+    }
+    await _service.PersistAsync(req, userId, logId, intentType, actionKey,
+                                cache.Hit, embedding, answer, elapsedMs);
+    return ProcessResponse;
+```
+
+That's the whole pipeline — top to bottom in `Controllers/ExperionController.cs`. Every step is one method on `ExperionService`. No nested orchestrators, no per-step classes.
+
+## ExperionService — flat methods only
+
+`Services/ExperionService.cs` exposes one public method per step, all at the same level:
+
+| Method | Step | What it does |
+|---|---|---|
+| `TrackActivityAsync` | /track | Appends events to Blob (JSONL), updates `UserProfile` row |
+| `EmbedQueryAsync` | 1 | Calls embedding provider → `float[]` |
+| `CheckSemanticCacheAsync` | 2 | Cosine vs. `SemanticCache`. Returns `{ Hit, Score, Answer, IntentType }` |
+| `ClassifyIntentAsync` | 3 | Hybrid (embedding + phrase) match vs. `ActionMappings`. Returns `{ IntentType, ActionKey?, scores }` |
+| `RunActionAsync` | 4a | Dispatches an `ActionJob` to the action queue |
+| `RunGenerationAsync` | 4b | Reads conversation history from Blob, retrieves KB, calls LLM |
+| `PersistAsync` | 5 | Writes 2 JSONL lines to Blob, plus `SemanticCache` (on miss) + `AuditLog` to SQL |
+| `ReadConversationTailAsync` | helper | Used by step 4b and inspector endpoint |
+| `ListUserBlobsAsync` | helper | Used by inspector endpoint |
+| `ReadBlobLinesAsync` | helper | Used by inspector endpoint |
+
+## Where things live
+
+| Data | Storage |
 |---|---|
-| **SDK** | `Experion.Identity`, `Experion.ActivityTracker` (passive, batched), `Experion.Gesture` (Alt+drag), `Experion.Idle`, `Experion.UI` (sphere + sidebar + toast), SignalR client |
-| **API** | `ExperionController` with `/identify`, `/config/{tenant}`, `/events`, `/process`, `/feedback`, `/inspect/*`, plus the `/hubs/experion` SignalR hub |
-| **Orchestrator** | `ExperionOrchestrator` composes 5 pipeline steps |
-| **Pipeline** | `ContextBuilderStep` → `SemanticCacheStep` → (HIT short-circuits) → `IntentRouterStep` → (`ActionTriggerStep` OR `LlmGenerationStep`) → `PersistStep` |
-| **Async lane** | `ChannelActivityBus` (= Service Bus events-queue) → `ActivityMiningWorker` → `RecommendationEngine` → SignalR push. `ChannelActionDispatcher` (= Service Bus action-queue) → `ActionWorker` → SignalR push |
-| **Storage** | EF Core SQLite: `ConversationHistory`, `ActionMappings`, `SemanticCache`, `UserProfile`, `ActivityEvents`, `AuditLogs`, `Tenants` |
-| **Providers** | `IEmbeddingProvider` and `ILlmProvider` interfaces with `Mock*` (default) and `AzureOpenAI*` implementations |
+| **Conversation history** | **Blob** — `conversations/{tenant}/{userId}/{yyyy-MM-dd}.jsonl` (one JSONL line per turn) |
+| **Activity events** | **Blob** — `activity/{tenant}/{userId}/{yyyy-MM-dd}.jsonl` |
+| Action mappings | SQL — `ActionMappings` |
+| Semantic cache | SQL — `SemanticCache` |
+| User profile | SQL — `UserProfile` |
+| Audit log | SQL — `AuditLog` |
+| Tenant config | SQL — `TenantConfig` |
 
-### Pipeline response shape
+Conversation and activity are append-only and don't need indexed lookups — perfect fit for **Azure Append Blobs**. The other tables need fast indexed reads (cache hit lookup, action mapping lookup, profile-by-userId), so they live in SQL.
 
-Every `/process` response includes a `pipeline` array showing exactly which steps ran, what they decided, and how long they took — that's why the sidebar can render the step trace under each AI message.
+## Blob storage — real implementation
+
+`Storage/IBlobStore.cs` has two implementations:
+
+| Class | Used when |
+|---|---|
+| `LocalFileBlobStore` | `BlobStorage:ConnectionString` is empty (default) — writes JSONL files under `./data/blob/...` |
+| `AzureBlobStore` | `BlobStorage:ConnectionString` is set — uses `Azure.Storage.Blobs` with **Append Blobs** (`AppendBlobClient.AppendBlockAsync`), perfect for concurrent appends without read-modify-write |
+
+To switch to real Azure:
 
 ```json
+// appsettings.json
 {
-  "intentType": "GENERATION",
-  "cacheHit": true,
-  "processingMs": 4,
-  "pipeline": [
-    { "name": "1. Context Builder",  "elapsedMs": 1, "detail": "user=anon-…, history-turns=2" },
-    { "name": "2. Semantic Cache",   "elapsedMs": 2, "detail": "HIT (cosine=1.000) — short-circuiting LLM" },
-    { "name": "5. Persist & Learn",  "elapsedMs": 1, "detail": "wrote: history (2), audit (1)" }
-  ]
+  "BlobStorage": {
+    "ConnectionString": "DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"
+  }
 }
 ```
 
-### Intent router
+That's the only change required — the service code is identical.
 
-The `IntentRouterStep` uses a **hybrid** signal: cosine similarity between the embedded query and each `ActionMappings.Embedding`, **plus** Jaccard / substring match against `ActionMappings.Phrases`. Either signal above threshold (or a weighted hybrid above the hybrid threshold) classifies the request as `ACTION`. This mirrors how production systems combine semantic + lexical signals to avoid embedding model misses on short imperative phrases.
-
-## API quick reference
-
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/api/experion/identify` | Mint a session id (UserID or anonId + IP/region cluster) |
-| `GET`  | `/api/experion/config/{tenantId}` | Tenant config for SDK boot |
-| `POST` | `/api/experion/events` | Async batched activity ingest |
-| `POST` | `/api/experion/process` | Sync entry point — runs the full pipeline |
-| `POST` | `/api/experion/feedback` | Thumbs up/down on a previous answer |
-| `GET`  | `/api/experion/inspect/history/{sessionId}` | Conversation history |
-| `GET`  | `/api/experion/inspect/cache` | Semantic cache rows |
-| `GET`  | `/api/experion/inspect/audit` | Audit log rows |
-| `GET`  | `/api/experion/inspect/profile/{userId}` | User profile + recent events |
-| `GET`  | `/api/experion/inspect/actions` | Configured action mappings |
-| `WS`   | `/hubs/experion?userId=<id>` | SignalR hub for nudges + action echoes |
-
-## Switching to Azure OpenAI
-
-Edit `appsettings.json`:
+## Switch to Azure OpenAI
 
 ```json
 {
   "Llm": { "Provider": "AzureOpenAI" },
   "AzureOpenAI": {
-    "Endpoint": "https://<your-resource>.openai.azure.com",
-    "ApiKey": "<your-key>",
+    "Endpoint": "https://<resource>.openai.azure.com",
+    "ApiKey": "<key>",
     "ChatDeployment": "gpt-4.1",
     "EmbeddingDeployment": "text-embedding-3-large",
     "ApiVersion": "2024-08-01-preview"
@@ -92,44 +126,48 @@ Edit `appsettings.json`:
 }
 ```
 
-The `AzureOpenAIEmbeddingProvider` and `AzureOpenAILlmProvider` will be wired in instead of the mocks. Delete `experion.db` to re-seed `ActionMappings` with the real embeddings.
+Delete `experion.db` to re-seed `ActionMappings` with real embeddings.
 
-## Mapping back to the architecture diagram
+## API quick reference
 
-| Diagram element | Code |
-|---|---|
-| Frontend SDK — Identity / Tracker / Gesture / Idle / UI | `wwwroot/experion.js` |
-| `ExperionController` (API) | `Controllers/ExperionController.cs` |
-| `IExperionService` orchestrator | `Services/ExperionOrchestrator.cs` |
-| Step 1 — Context Builder | `Services/PipelineSteps.cs#ContextBuilderStep` |
-| Step 2 — Semantic Cache | `Services/PipelineSteps.cs#SemanticCacheStep` |
-| Step 3 — NLP Intent Router | `Services/PipelineSteps.cs#IntentRouterStep` |
-| Step 4a — Action Trigger | `Services/PipelineSteps.cs#ActionTriggerStep` |
-| Step 4b — LLM Generation (RAG) | `Services/PipelineSteps.cs#LlmGenerationStep` |
-| Step 5 — Persist & Learn | `Services/PipelineSteps.cs#PersistStep` |
-| Service Bus action-queue | `Services/AsyncLane.cs#ChannelActionDispatcher` |
-| Service Bus events-queue | `Services/AsyncLane.cs#ChannelActivityBus` |
-| Activity Mining Worker | `Services/AsyncLane.cs#ActivityMiningWorker` |
-| Recommendation Trigger Engine | `Services/AsyncLane.cs#RecommendationEngine` |
-| SignalR push | `Services/AsyncLane.cs#ExperionHub` |
-| `ActionMappings` SQL table | `Data/Entities.cs#ActionMapping` (seeded by `Data/Seeder.cs`) |
-| `ConversationHistory` SQL table | `Data/Entities.cs#ConversationTurn` |
-| `SemanticCache` index/table | `Data/Entities.cs#SemanticCacheEntry` |
-| `UserProfile` table | `Data/Entities.cs#UserProfile` |
-| Tenant config | `Data/Entities.cs#TenantConfig` |
-| Azure OpenAI | `Providers/AzureOpenAIProviders.cs` (or `Providers/MockProviders.cs` for offline) |
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/experion/track` | **Function 1** — track activity events |
+| `POST` | `/api/experion/process` | **Function 2** — chat / action / generation |
+| `POST` | `/api/experion/identify` | Mint session id |
+| `GET`  | `/api/experion/config/{tenant}` | Tenant config for SDK boot |
+| `POST` | `/api/experion/feedback` | Thumbs up/down |
+| `GET`  | `/api/experion/inspect/conversation/{userId}?tenantId=...` | Tail conversation blob |
+| `GET`  | `/api/experion/inspect/blobs/{userId}?tenantId=...` | List user's blob paths |
+| `GET`  | `/api/experion/inspect/blob?container=...&path=...` | Read specific blob |
+| `GET`  | `/api/experion/inspect/cache` / `/audit` / `/profile/{u}` / `/actions` | Inspectors |
+| `WS`   | `/hubs/experion?userId=<id>` | SignalR for nudges + action echoes |
 
-## Production swap-in checklist
+## Files
 
-Each in-memory / mock piece below has an obvious production replacement:
-
-| Demo | Production |
-|---|---|
-| `MockLlmProvider` / `MockEmbeddingProvider` | `AzureOpenAILlmProvider` / `AzureOpenAIEmbeddingProvider` (already in repo) |
-| `ChannelActivityBus` / `ChannelActionDispatcher` | Azure Service Bus topics/queues |
-| Per-tenant KB stored in `TenantConfig.KbContent` + naive keyword retrieval | Azure AI Search KB index + hybrid retrieval |
-| `SemanticCacheEntry` table | Azure AI Search "semantic cache" vector index (with SQL fallback) |
-| Raw activity events in `ActivityEvents` table | Blob Storage JSONL, partitioned `tenant/userId/yyyymmdd.jsonl` |
-| SQLite | SQL Server |
-| In-process SignalR | Azure SignalR Service |
-| In-process scoped audit | Application Insights + audit table |
+```
+sample/src/Experion.Api/
+├── Controllers/ExperionController.cs    ← 2 main endpoints
+├── Services/
+│   ├── ExperionService.cs               ← FLAT, one method per step
+│   └── AsyncLane.cs                     ← Action queue + worker, RecoEngine, SignalR hub
+├── Storage/
+│   ├── IBlobStore.cs                    ← interface
+│   ├── LocalFileBlobStore.cs            ← demo / offline
+│   ├── AzureBlobStore.cs                ← real Azure (Append Blobs)
+│   └── BlobPaths.cs                     ← centralised path conventions
+├── Providers/
+│   ├── Interfaces.cs
+│   ├── MockProviders.cs                 ← default
+│   └── AzureOpenAIProviders.cs          ← real
+├── Data/
+│   ├── ExperionDbContext.cs             ← SQL only — cache/audit/profile/actions/tenant
+│   ├── Entities.cs
+│   └── Seeder.cs                        ← seeds 6 ActionMappings + 1 tenant
+├── Models/Dtos.cs
+├── Program.cs
+├── appsettings.json
+└── wwwroot/
+    ├── experion.js                      ← drop-in SDK
+    └── index.html                       ← sample test page
+```

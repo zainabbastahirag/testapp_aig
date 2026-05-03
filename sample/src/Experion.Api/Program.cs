@@ -1,28 +1,46 @@
 using Experion.Api.Data;
 using Experion.Api.Providers;
 using Experion.Api.Services;
+using Experion.Api.Storage;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── Data ─────────────────────────────────────────────────────────────
+// ── Data (SQL Server via SQLite for the demo) ─────────────────────────
 var dbPath = builder.Configuration.GetConnectionString("Sqlite") ?? "Data Source=experion.db";
 builder.Services.AddDbContext<ExperionDbContext>(opt => opt.UseSqlite(dbPath));
 
-// ── Providers (mock by default; switch via Llm:Provider in appsettings) ──
+// ── Blob store: Azure when connection string present, else local files ──
+var azureBlobConn = builder.Configuration["BlobStorage:ConnectionString"];
+if (!string.IsNullOrWhiteSpace(azureBlobConn))
+{
+    builder.Services.AddSingleton<IBlobStore>(_ => new AzureBlobStore(azureBlobConn));
+    Console.WriteLine("[Storage] Azure Blob Storage configured.");
+}
+else
+{
+    var configured = builder.Configuration["BlobStorage:LocalRoot"];
+    var local = string.IsNullOrWhiteSpace(configured)
+        ? Path.Combine(builder.Environment.ContentRootPath, "data", "blob")
+        : configured;
+    builder.Services.AddSingleton<IBlobStore>(_ => new LocalFileBlobStore(local));
+    Console.WriteLine($"[Storage] Local file blob store at {local}");
+}
+
+// ── LLM + Embedding providers (Mock by default; AzureOpenAI swap-in) ──
 var llmProvider = builder.Configuration["Llm:Provider"] ?? "Mock";
 if (llmProvider.Equals("AzureOpenAI", StringComparison.OrdinalIgnoreCase))
 {
-    var aoaiSettings = new AzureOpenAISettings();
-    builder.Configuration.GetSection("AzureOpenAI").Bind(aoaiSettings);
-    builder.Services.AddSingleton(aoaiSettings);
+    var aoai = new AzureOpenAISettings();
+    builder.Configuration.GetSection("AzureOpenAI").Bind(aoai);
+    builder.Services.AddSingleton(aoai);
     builder.Services.AddHttpClient<AzureOpenAIEmbeddingProvider>();
     builder.Services.AddHttpClient<AzureOpenAILlmProvider>();
     builder.Services.AddSingleton<IEmbeddingProvider>(sp => new AzureOpenAIEmbeddingProvider(
-        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(AzureOpenAIEmbeddingProvider)), aoaiSettings));
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(AzureOpenAIEmbeddingProvider)), aoai));
     builder.Services.AddSingleton<ILlmProvider>(sp => new AzureOpenAILlmProvider(
-        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(AzureOpenAILlmProvider)), aoaiSettings));
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(AzureOpenAILlmProvider)), aoai));
 }
 else
 {
@@ -30,23 +48,15 @@ else
     builder.Services.AddSingleton<ILlmProvider, MockLlmProvider>();
 }
 
-// ── Pipeline steps ───────────────────────────────────────────────────
-builder.Services.AddScoped<ContextBuilderStep>();
-builder.Services.AddScoped<SemanticCacheStep>();
-builder.Services.AddScoped<IntentRouterStep>();
-builder.Services.AddScoped<ActionTriggerStep>();
-builder.Services.AddScoped<LlmGenerationStep>();
-builder.Services.AddScoped<PersistStep>();
-
-// ── Async lane (in-memory channels stand in for Service Bus) ─────────
+// ── Action queue + worker ─────────────────────────────────────────────
 builder.Services.AddSingleton<IActionDispatcher, ChannelActionDispatcher>();
-builder.Services.AddSingleton<IActivityEventBus, ChannelActivityBus>();
 builder.Services.AddHostedService<ActionWorker>();
-builder.Services.AddHostedService<ActivityMiningWorker>();
+
+// ── Recommendation engine ─────────────────────────────────────────────
 builder.Services.AddScoped<RecommendationEngine>();
 
-// ── Orchestrator ─────────────────────────────────────────────────────
-builder.Services.AddSingleton<IExperionService, ExperionOrchestrator>();
+// ── Flat ExperionService (one method per pipeline step) ───────────────
+builder.Services.AddScoped<ExperionService>();
 
 // ── SignalR ──────────────────────────────────────────────────────────
 builder.Services.AddSingleton<IUserIdProvider, UserIdProvider>();
@@ -61,7 +71,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// ── DB init + seed ───────────────────────────────────────────────────
+// ── DB init + seed ────────────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ExperionDbContext>();

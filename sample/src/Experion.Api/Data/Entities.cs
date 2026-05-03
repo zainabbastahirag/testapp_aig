@@ -1,18 +1,5 @@
 namespace Experion.Api.Data;
 
-public class ConversationTurn
-{
-    public long Id { get; set; }
-    public string SessionId { get; set; } = string.Empty;
-    public string UserId { get; set; } = string.Empty;
-    public string Role { get; set; } = "user";      // user | assistant
-    public string Content { get; set; } = string.Empty;
-    public string? IntentType { get; set; }
-    public string? ActionKey { get; set; }
-    public bool CacheHit { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-}
-
 public class ActionMapping
 {
     public int Id { get; set; }
@@ -49,19 +36,6 @@ public class UserProfile
     public string LastActivityJson { get; set; } = "[]";   // last N event summaries
     public DateTime LastSeenAt { get; set; } = DateTime.UtcNow;
     public DateTime LastNudgeAt { get; set; } = DateTime.MinValue;
-}
-
-public class ActivityEventRecord
-{
-    public long Id { get; set; }
-    public string SessionId { get; set; } = string.Empty;
-    public string UserId { get; set; } = string.Empty;
-    public string Type { get; set; } = string.Empty;
-    public string? Url { get; set; }
-    public string? Selector { get; set; }
-    public string? Text { get; set; }
-    public string? MetaJson { get; set; }
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }
 
 public class AuditLog

@@ -1,7 +1,9 @@
+using System.Text.Json;
 using System.Threading.Channels;
 using Experion.Api.Data;
 using Experion.Api.Models;
 using Experion.Api.Providers;
+using Experion.Api.Storage;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Experion.Api.Services;
 
 // ── Action queue (in-memory channel = stand-in for Service Bus action-queue) ──
+
 public class ActionJob
 {
     public string ActionKey { get; set; } = string.Empty;
@@ -31,7 +34,8 @@ public class ChannelActionDispatcher : IActionDispatcher
     public ChannelReader<ActionJob> Reader => _channel.Reader;
 }
 
-// ── Worker that consumes the action queue ──
+// ── Action worker (consumes action-queue, executes, echoes via SignalR) ──
+
 public class ActionWorker : BackgroundService
 {
     private readonly IActionDispatcher _dispatcher;
@@ -52,8 +56,6 @@ public class ActionWorker : BackgroundService
                 _log.LogInformation("[ActionWorker] executing {Action} for {User} on {Url}",
                     job.ActionKey, job.UserId, job.PageUrl);
 
-                // Real implementation would call an internal API based on ActionMappings.TargetEndpoint.
-                // We simulate side-effects by pushing a UI hint to the SDK over SignalR.
                 using var scope = _sp.CreateScope();
                 var hub = scope.ServiceProvider.GetRequiredService<IHubContext<ExperionHub>>();
                 await hub.Clients.User(job.UserId).SendAsync("action_executed", new
@@ -63,134 +65,61 @@ public class ActionWorker : BackgroundService
                     timestamp = DateTime.UtcNow
                 }, stoppingToken);
 
-                await Task.Delay(50, stoppingToken); // simulate work
+                await Task.Delay(50, stoppingToken);
             }
             catch (OperationCanceledException) { break; }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "[ActionWorker] failed for {Action}", job.ActionKey);
-            }
+            catch (Exception ex) { _log.LogError(ex, "[ActionWorker] failed for {Action}", job.ActionKey); }
         }
     }
 }
 
-// ── Activity event channel (in-memory = stand-in for events-queue) ──
-public interface IActivityEventBus
-{
-    ValueTask PublishAsync(string sessionId, ActivityEventDto evt, CancellationToken ct = default);
-    ChannelReader<(string SessionId, ActivityEventDto Event)> Reader { get; }
-}
+// ── Recommendation engine ──
+// Triggered by the controller (or a timer) after activity is tracked.
+// Reads recent activity from blob, drafts a nudge with the LLM, pushes via SignalR.
 
-public class ChannelActivityBus : IActivityEventBus
-{
-    private readonly Channel<(string, ActivityEventDto)> _ch = Channel.CreateUnbounded<(string, ActivityEventDto)>();
-    public ValueTask PublishAsync(string sessionId, ActivityEventDto evt, CancellationToken ct = default)
-        => _ch.Writer.WriteAsync((sessionId, evt), ct);
-    public ChannelReader<(string SessionId, ActivityEventDto Event)> Reader => _ch.Reader;
-}
-
-// ── Activity Mining Worker ──
-// Consumes activity events, persists raw rows (in real arch: writes JSONL to Blob),
-// updates UserProfile, and feeds the recommendation trigger engine.
-public class ActivityMiningWorker : BackgroundService
-{
-    private readonly IActivityEventBus _bus;
-    private readonly IServiceProvider _sp;
-    private readonly ILogger<ActivityMiningWorker> _log;
-
-    public ActivityMiningWorker(IActivityEventBus bus, IServiceProvider sp, ILogger<ActivityMiningWorker> log)
-    {
-        _bus = bus; _sp = sp; _log = log;
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        await foreach (var (sessionId, evt) in _bus.Reader.ReadAllAsync(stoppingToken))
-        {
-            try
-            {
-                using var scope = _sp.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<ExperionDbContext>();
-                var reco = scope.ServiceProvider.GetRequiredService<RecommendationEngine>();
-
-                var userId = sessionId.Contains("__") ? sessionId.Split("__")[0] : sessionId;
-
-                db.ActivityEvents.Add(new ActivityEventRecord
-                {
-                    SessionId = sessionId,
-                    UserId = userId,
-                    Type = evt.Type,
-                    Url = evt.Url,
-                    Selector = evt.Selector,
-                    Text = evt.Text,
-                    MetaJson = evt.Meta == null ? null : System.Text.Json.JsonSerializer.Serialize(evt.Meta),
-                    Timestamp = evt.Timestamp
-                });
-
-                var profile = await db.UserProfiles.FindAsync(new object[] { userId }, stoppingToken);
-                if (profile == null)
-                {
-                    profile = new UserProfile
-                    {
-                        UserId = userId,
-                        IsAnonymous = userId.StartsWith("anon-", StringComparison.OrdinalIgnoreCase),
-                        TenantId = "default"
-                    };
-                    db.UserProfiles.Add(profile);
-                }
-                profile.TotalEvents += 1;
-                profile.LastSeenAt = DateTime.UtcNow;
-
-                await db.SaveChangesAsync(stoppingToken);
-
-                // Trigger evaluation
-                await reco.EvaluateAsync(userId, sessionId, stoppingToken);
-            }
-            catch (OperationCanceledException) { break; }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "[ActivityMiningWorker] failed processing event");
-            }
-        }
-    }
-}
-
-// ── Recommendation Trigger Engine ──
 public class RecommendationEngine
 {
     private readonly ExperionDbContext _db;
+    private readonly IBlobStore _blob;
     private readonly ILlmProvider _llm;
     private readonly IHubContext<ExperionHub> _hub;
     private readonly ILogger<RecommendationEngine> _log;
 
-    public RecommendationEngine(ExperionDbContext db, ILlmProvider llm, IHubContext<ExperionHub> hub,
-        ILogger<RecommendationEngine> log)
+    public const int MinEventsForNudge = 5;
+
+    public RecommendationEngine(
+        ExperionDbContext db, IBlobStore blob, ILlmProvider llm,
+        IHubContext<ExperionHub> hub, ILogger<RecommendationEngine> log)
     {
-        _db = db; _llm = llm; _hub = hub; _log = log;
+        _db = db; _blob = blob; _llm = llm; _hub = hub; _log = log;
     }
 
-    public async Task EvaluateAsync(string userId, string sessionId, CancellationToken ct)
+    public async Task EvaluateAsync(string tenantId, string userId, CancellationToken ct)
     {
         var profile = await _db.UserProfiles.FindAsync(new object?[] { userId }, ct);
         if (profile == null) return;
 
-        var tenant = await _db.Tenants.FindAsync(new object?[] { profile.TenantId }, ct) ?? new TenantConfig();
+        var tenant = await _db.Tenants.FindAsync(new object?[] { tenantId }, ct) ?? new TenantConfig();
         var cooldown = TimeSpan.FromSeconds(tenant.NudgeCooldownSeconds);
         if (DateTime.UtcNow - profile.LastNudgeAt < cooldown) return;
 
-        // Rule: if user produced >= 5 events in the last 30s, nudge.
-        var recent = await _db.ActivityEvents
-            .Where(e => e.UserId == userId && e.Timestamp >= DateTime.UtcNow.AddSeconds(-30))
-            .OrderByDescending(e => e.Timestamp)
-            .Take(20)
-            .ToListAsync(ct);
-        if (recent.Count < 5) return;
+        var path = BlobPaths.Activity(tenantId, userId, DateTime.UtcNow);
+        var lines = await _blob.ReadTailAsync(BlobPaths.ActivityContainer, path, 20, ct);
+        if (lines.Count < MinEventsForNudge) return;
 
-        // Build a tiny activity summary for the LLM
-        var summary = string.Join("\n", recent.Take(8).Select(e => $"- {e.Type} {e.Url} {e.Text}"));
+        var summary = string.Join("\n", lines.TakeLast(8).Select(l =>
+        {
+            try
+            {
+                var d = JsonDocument.Parse(l).RootElement;
+                return $"- {Get(d, "Type")} {Get(d, "Url")} {Get(d, "Text")}";
+            }
+            catch { return "- (parse error)"; }
+        }));
 
         var nudge = await _llm.CompleteAsync(
-            systemPrompt: "{\"task\":\"draft_recommendation\"}  You are Experion. Based on the user's recent activity, draft a short proactive helper message (max 2 sentences) and 3 quick reply suggestions.",
+            systemPrompt: "{\"task\":\"draft_recommendation\"}  You are Experion. Based on the user's recent activity, " +
+                          "draft a short proactive helper message (max 2 sentences).",
             userPrompt:   $"## RECENT_ACTIVITY\n{summary}\n\n## QUESTION\nWhat could I helpfully suggest right now?",
             ct);
 
@@ -199,26 +128,23 @@ public class RecommendationEngine
             Type = "nudge",
             Message = nudge,
             Suggestions = new List<string> { "Yes please", "Show me alternatives", "Not now" },
-            Reason = $"{recent.Count} events in last 30s"
+            Reason = $"{lines.Count} events in last batch"
         };
 
         profile.LastNudgeAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
 
-        _log.LogInformation("[Reco] pushing nudge to user {User}", userId);
+        _log.LogInformation("[Reco] pushing nudge to {User}", userId);
         await _hub.Clients.User(userId).SendAsync("nudge", payload, ct);
     }
+
+    private static string Get(JsonElement d, string name) =>
+        d.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
 }
 
 // ── SignalR hub ──
-public class ExperionHub : Hub
-{
-    public override Task OnConnectedAsync()
-    {
-        // The SDK passes the userId as ?userId=... when connecting.
-        return base.OnConnectedAsync();
-    }
-}
+
+public class ExperionHub : Hub { }
 
 public class UserIdProvider : IUserIdProvider
 {

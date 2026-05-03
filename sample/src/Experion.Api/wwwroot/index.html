@@ -132,13 +132,16 @@
 
   <section>
     <h2><span class="num">6</span>Inspect the data layer</h2>
-    <p class="help">These read straight from SQLite (in real arch: SQL Server + AI Search). Click to refresh.</p>
+    <p class="help">Conversation history and activity events are stored in <strong>blob storage</strong> as JSONL
+    (Append Blobs in Azure, JSONL files locally for the demo). Cache, audit, profile, and action mappings stay in SQL.
+    Click to refresh.</p>
     <div class="row">
-      <button class="pill" onclick="loadHistory()">Conversation history</button>
-      <button class="pill" onclick="loadCache()">Semantic cache</button>
-      <button class="pill" onclick="loadAudit()">Audit log</button>
-      <button class="pill" onclick="loadProfile()">User profile + recent events</button>
-      <button class="pill" onclick="loadActions()">Action mappings</button>
+      <button class="pill" onclick="loadConversation()">Conversation (blob)</button>
+      <button class="pill" onclick="loadBlobs()">List user blobs</button>
+      <button class="pill" onclick="loadCache()">Semantic cache (SQL)</button>
+      <button class="pill" onclick="loadAudit()">Audit log (SQL)</button>
+      <button class="pill" onclick="loadProfile()">User profile (SQL)</button>
+      <button class="pill" onclick="loadActions()">Action mappings (SQL)</button>
     </div>
     <pre id="inspect-out" style="margin-top:14px">Pick a panel above…</pre>
   </section>
@@ -185,7 +188,12 @@
   }
 
   function show(o) { document.getElementById('inspect-out').textContent = JSON.stringify(o, null, 2); }
-  async function loadHistory() { show(await api('/inspect/history/' + encodeURIComponent(Experion.sessionId()))); }
+  async function loadConversation() {
+    show(await api('/inspect/conversation/' + encodeURIComponent(Experion.userId()) + '?tenantId=default&take=50'));
+  }
+  async function loadBlobs() {
+    show(await api('/inspect/blobs/' + encodeURIComponent(Experion.userId()) + '?tenantId=default'));
+  }
   async function loadCache()   { show(await api('/inspect/cache')); }
   async function loadAudit()   { show(await api('/inspect/audit')); }
   async function loadProfile() { show(await api('/inspect/profile/' + encodeURIComponent(Experion.userId()))); }
