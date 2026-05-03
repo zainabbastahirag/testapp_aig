@@ -1,0 +1,16 @@
+/workspace/src/ExperionAgent.Infrastructure/obj/Debug/net8.0/ExperionAgent.Infrastructure.csproj.AssemblyReference.cache
+/workspace/src/ExperionAgent.Infrastructure/obj/Debug/net8.0/ExperionAgent.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+/workspace/src/ExperionAgent.Infrastructure/obj/Debug/net8.0/ExperionAgent.Infrastructure.AssemblyInfoInputs.cache
+/workspace/src/ExperionAgent.Infrastructure/obj/Debug/net8.0/ExperionAgent.Infrastructure.AssemblyInfo.cs
+/workspace/src/ExperionAgent.Infrastructure/obj/Debug/net8.0/ExperionAgent.Infrastructure.csproj.CoreCompileInputs.cache
+/workspace/src/ExperionAgent.Infrastructure/obj/Debug/net8.0/ExperionAgent.Infrastructure.sourcelink.json
+/workspace/src/ExperionAgent.Infrastructure/bin/Debug/net8.0/ExperionAgent.Infrastructure.deps.json
+/workspace/src/ExperionAgent.Infrastructure/bin/Debug/net8.0/ExperionAgent.Infrastructure.dll
+/workspace/src/ExperionAgent.Infrastructure/bin/Debug/net8.0/ExperionAgent.Infrastructure.pdb
+/workspace/src/ExperionAgent.Infrastructure/bin/Debug/net8.0/ExperionAgent.Core.dll
+/workspace/src/ExperionAgent.Infrastructure/bin/Debug/net8.0/ExperionAgent.Core.pdb
+/workspace/src/ExperionAgent.Infrastructure/obj/Debug/net8.0/Experion.C4BA7957.Up2Date
+/workspace/src/ExperionAgent.Infrastructure/obj/Debug/net8.0/ExperionAgent.Infrastructure.dll
+/workspace/src/ExperionAgent.Infrastructure/obj/Debug/net8.0/refint/ExperionAgent.Infrastructure.dll
+/workspace/src/ExperionAgent.Infrastructure/obj/Debug/net8.0/ExperionAgent.Infrastructure.pdb
+/workspace/src/ExperionAgent.Infrastructure/obj/Debug/net8.0/ref/ExperionAgent.Infrastructure.dll

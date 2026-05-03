@@ -1,0 +1,12 @@
+/workspace/src/ExperionAgent.Core/bin/Debug/net8.0/ExperionAgent.Core.deps.json
+/workspace/src/ExperionAgent.Core/bin/Debug/net8.0/ExperionAgent.Core.dll
+/workspace/src/ExperionAgent.Core/bin/Debug/net8.0/ExperionAgent.Core.pdb
+/workspace/src/ExperionAgent.Core/obj/Debug/net8.0/ExperionAgent.Core.GeneratedMSBuildEditorConfig.editorconfig
+/workspace/src/ExperionAgent.Core/obj/Debug/net8.0/ExperionAgent.Core.AssemblyInfoInputs.cache
+/workspace/src/ExperionAgent.Core/obj/Debug/net8.0/ExperionAgent.Core.AssemblyInfo.cs
+/workspace/src/ExperionAgent.Core/obj/Debug/net8.0/ExperionAgent.Core.csproj.CoreCompileInputs.cache
+/workspace/src/ExperionAgent.Core/obj/Debug/net8.0/ExperionAgent.Core.sourcelink.json
+/workspace/src/ExperionAgent.Core/obj/Debug/net8.0/ExperionAgent.Core.dll
+/workspace/src/ExperionAgent.Core/obj/Debug/net8.0/refint/ExperionAgent.Core.dll
+/workspace/src/ExperionAgent.Core/obj/Debug/net8.0/ExperionAgent.Core.pdb
+/workspace/src/ExperionAgent.Core/obj/Debug/net8.0/ref/ExperionAgent.Core.dll
