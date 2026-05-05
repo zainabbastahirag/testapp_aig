@@ -1,0 +1,246 @@
+@{
+    ViewData["Title"] = "Ask Anything. Get Wisdom. Anytime.";
+}
+
+<main class="stage">
+
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- HEADER                                                            -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <header class="topbar">
+        <div class="brand">
+            <span class="brand-glyph">🜍</span>
+            <span class="brand-text">AI <strong>GUIDE</strong></span>
+        </div>
+
+        <div class="brand-center" aria-hidden="true">
+            <div class="brand-title">AI <strong>GUIDE</strong></div>
+            <div class="brand-tagline">Ask Anything. Get Wisdom. Anytime.</div>
+        </div>
+
+        <div class="header-actions">
+            <button class="pill-btn" id="langBtn" title="Language">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+                <span>EN</span>
+            </button>
+            <label class="theme-switch" title="Theme">
+                <input type="checkbox" id="themeToggle" />
+                <span class="theme-track"><span class="theme-thumb"></span></span>
+                <span class="theme-icons"><span class="theme-sun">☀</span><span class="theme-moon">☾</span></span>
+            </label>
+            <button class="icon-btn" id="menuBtn" title="Menu">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- 3-COLUMN GRID                                                     -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <section class="grid">
+
+        <!-- ─────── LEFT — Personas ─────── -->
+        <aside class="panel left">
+            <div class="panel-title">— Choose Avatar —</div>
+            <div class="avatars">
+                <button class="avatar-card active" data-avatar="sage">
+                    <div class="avatar-card-face" data-portrait="sage"></div>
+                    <div class="avatar-card-body">
+                        <div class="avatar-card-name">The Sage</div>
+                        <div class="avatar-card-tag">Wisdom &amp;<br/>Guidance</div>
+                    </div>
+                    <span class="check">✓</span>
+                </button>
+                <button class="avatar-card" data-avatar="philosopher">
+                    <div class="avatar-card-face" data-portrait="philosopher"></div>
+                    <div class="avatar-card-body">
+                        <div class="avatar-card-name">The Philosopher</div>
+                        <div class="avatar-card-tag">Deep Thinker &amp;<br/>Analytical</div>
+                    </div>
+                </button>
+                <button class="avatar-card" data-avatar="healer">
+                    <div class="avatar-card-face" data-portrait="healer"></div>
+                    <div class="avatar-card-body">
+                        <div class="avatar-card-name">The Healer</div>
+                        <div class="avatar-card-tag">Compassion &amp;<br/>Inner Peace</div>
+                    </div>
+                </button>
+                <button class="avatar-card" data-avatar="elder">
+                    <div class="avatar-card-face" data-portrait="elder"></div>
+                    <div class="avatar-card-body">
+                        <div class="avatar-card-name">The Elder</div>
+                        <div class="avatar-card-tag">Tradition &amp;<br/>Experience</div>
+                    </div>
+                </button>
+                <button class="avatar-card" data-avatar="storyteller">
+                    <div class="avatar-card-face" data-portrait="storyteller"></div>
+                    <div class="avatar-card-body">
+                        <div class="avatar-card-name">The Storyteller</div>
+                        <div class="avatar-card-tag">Stories &amp;<br/>Inspiration</div>
+                    </div>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ─────── CENTER — Hero Stage ─────── -->
+        <section class="hero" id="hero" data-bg="dawn">
+            <div class="hero-scene" id="heroScene"></div>
+            <div class="hero-portrait" id="heroPortrait"></div>
+
+            <div class="speech-bubble" id="speechBubble">
+                <span class="quote-mark left">“</span>
+                <p id="speechText">Welcome, seeker.<br/>Ask me anything, and together we shall explore the answers.</p>
+                <span class="quote-mark right">”</span>
+            </div>
+
+            <div class="waveform" id="waveform">
+                <canvas id="waveCanvas"></canvas>
+            </div>
+
+            <div class="hero-status" id="heroStatus">AI is listening<span class="dots"><i></i><i></i><i></i></span></div>
+
+            <form class="composer" id="composer" autocomplete="off">
+                <input type="text" id="messageInput" placeholder="Type your question here..." />
+                <button type="button" id="micBtn" class="mic-btn" title="Tap to speak">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <rect x="9" y="3" width="6" height="12" rx="3"/>
+                        <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+                    </svg>
+                </button>
+                <button type="submit" id="sendBtn" class="ask-btn" title="Ask">
+                    <span>ASK</span>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 12l18-9-7 18-3-8-8-1z"/></svg>
+                </button>
+            </form>
+        </section>
+
+        <!-- ─────── RIGHT — Mindsets + Voice & Settings ─────── -->
+        <aside class="panel right">
+            <div class="panel-title">— Choose Mindset —</div>
+            <div class="mindsets">
+                <button class="mindset-card active" data-mindset="balanced">
+                    <span class="mind-ico">⚖️</span>
+                    <span class="mind-body">
+                        <span class="mind-name">Balanced</span>
+                        <span class="mind-tag">Well-rounded perspective<br/>for all situations</span>
+                    </span>
+                    <span class="check">✓</span>
+                </button>
+                <button class="mindset-card" data-mindset="logical">
+                    <span class="mind-ico">🧠</span>
+                    <span class="mind-body">
+                        <span class="mind-name">Logical</span>
+                        <span class="mind-tag">Clear, rational<br/>and practical advice</span>
+                    </span>
+                </button>
+                <button class="mindset-card" data-mindset="spiritual">
+                    <span class="mind-ico">🪷</span>
+                    <span class="mind-body">
+                        <span class="mind-name">Spiritual</span>
+                        <span class="mind-tag">Soulful, mindful<br/>and inner growth</span>
+                    </span>
+                </button>
+                <button class="mindset-card" data-mindset="motivational">
+                    <span class="mind-ico">🔥</span>
+                    <span class="mind-body">
+                        <span class="mind-name">Motivational</span>
+                        <span class="mind-tag">Encouraging and<br/>uplifting guidance</span>
+                    </span>
+                </button>
+                <button class="mindset-card" data-mindset="creative">
+                    <span class="mind-ico">💡</span>
+                    <span class="mind-body">
+                        <span class="mind-name">Creative</span>
+                        <span class="mind-tag">Innovative and<br/>out-of-the-box ideas</span>
+                    </span>
+                </button>
+            </div>
+
+            <div class="voice-card">
+                <div class="voice-header">
+                    <span class="voice-icon">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11v2M7 8v8M11 5v14M15 8v8M19 11v2"/></svg>
+                    </span>
+                    <span>VOICE &amp; SETTINGS</span>
+                </div>
+
+                <div class="voice-row">
+                    <label>Voice</label>
+                    <select id="voiceSelect">
+                        <option value="warm">Calm &amp; Warm</option>
+                        <option value="bright">Bright &amp; Crisp</option>
+                        <option value="deep">Deep &amp; Grounded</option>
+                    </select>
+                </div>
+
+                <div class="voice-row">
+                    <label>Speed</label>
+                    <div class="slider-row">
+                        <input type="range" id="speedRange" min="0.6" max="1.4" step="0.1" value="1.0" />
+                        <span id="speedValue">1.0×</span>
+                    </div>
+                </div>
+
+                <div class="voice-row">
+                    <label>Background</label>
+                    <div class="bg-row">
+                        <button class="bg-thumb active" data-bg="dawn"  style="background:linear-gradient(135deg,#3d2a16,#a96b3a 60%,#f7c97f)"></button>
+                        <button class="bg-thumb"        data-bg="forest" style="background:linear-gradient(135deg,#0f1a16,#234c33 60%,#7fc09a)"></button>
+                        <button class="bg-thumb"        data-bg="dusk"  style="background:linear-gradient(135deg,#2b1428,#7a3a3a 60%,#f1a666)"></button>
+                        <button class="bg-thumb"        data-bg="night" style="background:linear-gradient(135deg,#0a1230,#5c4ea6 60%,#9fb5ff)"></button>
+                        <button class="bg-thumb"        data-bg="lake"  style="background:linear-gradient(135deg,#0c1a2c,#2a5378 60%,#7faedc)"></button>
+                    </div>
+                </div>
+
+                <div class="voice-row">
+                    <label>Memory</label>
+                    <div class="memory-row">
+                        <span id="memName" class="memory-pill">no name</span>
+                        <span id="memTurns" class="memory-pill">0 turns</span>
+                        <button id="resetBtn" class="reset-btn" title="Reset memory">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="voice-row" style="grid-template-columns: auto 1fr;">
+                    <label>Name</label>
+                    <input type="text" id="userName" placeholder="Tell me your name" autocomplete="off" />
+                </div>
+            </div>
+        </aside>
+
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- BOTTOM — chips + quote                                            -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <nav class="chips" id="chips">
+        <button class="chip" data-prompt="Help me reflect on my life right now.">
+            <span class="chip-ico" style="color:#a8e8a3">❀</span> Life
+        </button>
+        <button class="chip" data-prompt="How can I cultivate a stronger mindset?">
+            <span class="chip-ico" style="color:#a8b6e8">𓁹</span> Mindset
+        </button>
+        <button class="chip" data-prompt="Give me wisdom about relationships.">
+            <span class="chip-ico" style="color:#ff8a9f">♥</span> Relationships
+        </button>
+        <button class="chip" data-prompt="Advise me on my career path.">
+            <span class="chip-ico" style="color:#f6c453">▤</span> Career
+        </button>
+        <button class="chip" data-prompt="What can I do for my health today?">
+            <span class="chip-ico" style="color:#9be8d9">⚕</span> Health
+        </button>
+        <button class="chip" data-prompt="Share a spiritual reflection.">
+            <span class="chip-ico" style="color:#d6b3ff">✦</span> Spirituality
+        </button>
+        <button class="chip more" id="moreChip">More ›</button>
+    </nav>
+
+    <footer class="quote-bar">
+        <span class="quote-deco">“</span>
+        <span class="quote-text">Wisdom is not from one place. It is everywhere.</span>
+        <span class="quote-deco">”</span>
+    </footer>
+
+</main>
